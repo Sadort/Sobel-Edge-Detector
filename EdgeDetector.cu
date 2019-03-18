@@ -30,7 +30,7 @@ int main(int argc, char* argv[]){
     Matrix gaussianKernel = createGaussianKernel(gaussKernelSize, sigma);
 
     //////////////Parallel Processing///////////////
-    double parallelTime = parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads);
+    parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads);
 
     //Free memory
     freeImage(image);
@@ -75,7 +75,7 @@ void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathNa
     dim3 dimGaussGrid((imageWidth - 1) / tileWidth + 1, (imageHeight - 1) / tileWidth + 1);
     
 
-    DynamicTiledConvolution << < dimGaussGrid, dimGaussBlock, blockWidth * blockWidth * sizeof(float) >> > (imageDevice, resultDevice, imageWidth, imageHeight, kernelDevice, kernelSize, tileWidth, blockWidth);
+    DynamicTiledConvolution <<< dimGaussGrid, dimGaussBlock, blockWidth * blockWidth * sizeof(float) >>> (imageDevice, resultDevice, imageWidth, imageHeight, kernelDevice, kernelSize, tileWidth, blockWidth);
     err = cudaGetLastError();
     if (err != cudaSuccess)	printf("Gauss Error: %s\n", cudaGetErrorString(err));
 
@@ -86,7 +86,7 @@ void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathNa
     
     //Tiled Sobel Filter
     dim3 threadsPerBlock(32, 32);
-    dim3 blocksPerGrid((imgWidth + threadsPerBlock.x - 1) / threadsPerBlock.x, (imgHeight + threadsPerBlock.y - 1) / threadsPerBlock.y);
+    dim3 blocksPerGrid((imageWidth + threadsPerBlock.x - 1) / threadsPerBlock.x, (imageHeight + threadsPerBlock.y - 1) / threadsPerBlock.y);
     
     sobelInCuda <<<blocksPerGrid, threadsPerBlock >>>(imageDevice, resultDevice, imageHeight, imageWidth);
     
@@ -98,23 +98,15 @@ void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathNa
     Matrix dataResult = arrayToMatrix(result, imageHeight, imageWidth);
     Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
     matrixToImage(normalized, imageResult);
-    #ifdef _WIN32
-        pathName = "..\\output\\"+pathName+"_gpu.ppm";
-    #else
-        pathName = "../output/"+pathName+"_gpu.ppm";
-    #endif
+    pathName = "./output/"+pathName+"_gpu.ppm";
     writePPM(pathName.c_str(), imageResult);
     freeImage(imageResult);
     /////////////////////////////////////////////////
 
-    cout << "GPU Gauss Time: " << setprecision(3) << fixed << gaussTime << "s." << endl;
-    cout << "GPU Sobel Time: " << setprecision(3) << fixed << sobelTime << "s." << endl;
-    cout << "GPU Time: " << setprecision(3) << fixed << gaussTime + sobelTime << "s." << endl;
-
     ////////////////Free Memory used in GPU and CPU//////////////////
-    cudaFree(xGradDevice);	cudaFree(yGradDevice); cudaFree(imageDevice);
+    cudaFree(imageDevice);
     cudaFree(resultDevice); cudaFree(kernelDevice);
-    freeArray(xGradient);	freeArray(yGradient);  freeArray(result);
+    freeArray(result);
     freeArray(grayImageArray); freeArray(gaussKernelArray);
     /////////////////////////////////////////////////////////////////
 }

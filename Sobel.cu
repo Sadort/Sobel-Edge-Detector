@@ -1,5 +1,5 @@
 
-__global__ void sobelInCuda(unsigned char *dataIn, unsigned char *dataOut, int imgHeight, int imgWidth)
+__global__ void sobelInCuda(float *dataIn, float *dataOut, int imgHeight, int imgWidth)
 {
     int xIndex = threadIdx.x + blockIdx.x * blockDim.x;
     int yIndex = threadIdx.y + blockIdx.y * blockDim.y;
