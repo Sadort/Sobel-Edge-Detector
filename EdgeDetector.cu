@@ -1,4 +1,4 @@
-
+#include <math.h>
 #include <stdio.h>
 #include <ctime>
 #include <string>
@@ -44,6 +44,11 @@ int main(int argc, char* argv[]){
     writePPM(outputFileName.c_str(), imageResult);
     freeImage(imageResult);
 
+    int* finalresult = new int[imageWidth*imageHeight];
+    for (int i = 0; i < imageWidth*imageHeight; i++)
+    {
+        finalresult[i] = (int)result[i];
+    }
     system("convert output/image2_gpu.ppm output/image2_gpu.jpg");
 
     //Free memory
