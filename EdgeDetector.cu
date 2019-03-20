@@ -12,7 +12,7 @@ using namespace std;
 #include "GaussFilter.cuh" //Parallel Gauss
 #include "Sobel.cu"
 
-void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads);
+void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads, int imageWidth, int imageHeight, float* result);
 
 int main(int argc, char* argv[]){
     system("convert input/image2.jpg input/image2.ppm");
@@ -29,13 +29,25 @@ int main(int argc, char* argv[]){
     //////////////Pre-Processing///////////////////
     Matrix grayImage = rgb2gray(image);
     Matrix gaussianKernel = createGaussianKernel(gaussKernelSize, sigma);
+    int imageWidth = grayImage.getCols(), imageHeight = grayImage.getRows();
+    float* result = allocateArray(imageWidth*imageHeight);
 
     //////////////Parallel Processing///////////////
-    parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads);
-    
+    parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads, imageWidth, imageHeight, result);
+
+    ///////////////Save Image Result/////////////////    
+    PPMImage* imageResult = createImage(imageHeight, imageWidth);
+    Matrix dataResult = arrayToMatrix(result, imageHeight, imageWidth);
+    Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
+    matrixToImage(normalized, imageResult);
+    outputFileName = "./output/"+outputFileName+"_gpu.ppm";
+    writePPM(outputFileName.c_str(), imageResult);
+    freeImage(imageResult);
+
     system("convert output/image2_gpu.ppm output/image2_gpu.jpg");
 
     //Free memory
+    freeArray(result);
     freeImage(image);
 
     return 0;
@@ -45,21 +57,19 @@ int main(int argc, char* argv[]){
 /*
 Parallel Edge Detection using CUDA
 */
-void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads){
+void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads, int imageWidth, int imageHeight, float* result){
 
-    int imageWidth = grayImage.getCols(), imageHeight = grayImage.getRows();
-    int imageSize = imageWidth * imageHeight;
-    int kernelSize = gaussianKernel.getRows();
     cudaError_t err;
 
     //Arrays of CPU
-    float* result = allocateArray(imageSize);
     float* grayImageArray = grayImage.toArray();
     float* gaussKernelArray = gaussianKernel.toArray();
     
     //Arrays used in GPU
     float* kernelDevice; //Used in Gauss
     float* imageDevice, *resultDevice; //Used in both Gauss and Sobel
+    int imageSize = imageWidth * imageHeight;
+    int kernelSize = gaussianKernel.getRows();
 
     //Allocate Device Memory
     cudaMalloc((void**)&imageDevice, imageSize * sizeof(float));
@@ -97,19 +107,18 @@ void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathNa
     cudaMemcpy(result, resultDevice, imageSize * sizeof(float), cudaMemcpyDeviceToHost);
 
     ///////////////Save Image Result/////////////////
-    PPMImage* imageResult = createImage(imageHeight, imageWidth);
-    Matrix dataResult = arrayToMatrix(result, imageHeight, imageWidth);
-    Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
-    matrixToImage(normalized, imageResult);
-    pathName = "./output/"+pathName+"_gpu.ppm";
-    writePPM(pathName.c_str(), imageResult);
-    freeImage(imageResult);
+    //PPMImage* imageResult = createImage(imageHeight, imageWidth);
+    //Matrix dataResult = arrayToMatrix(result, imageHeight, imageWidth);
+    //Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
+    //matrixToImage(normalized, imageResult);
+    //pathName = "./output/"+pathName+"_gpu.ppm";
+    //writePPM(pathName.c_str(), imageResult);
+    //freeImage(imageResult);
     /////////////////////////////////////////////////
 
     ////////////////Free Memory used in GPU and CPU//////////////////
     cudaFree(imageDevice);
     cudaFree(resultDevice); cudaFree(kernelDevice);
-    freeArray(result);
     freeArray(grayImageArray); freeArray(gaussKernelArray);
     /////////////////////////////////////////////////////////////////
 }
