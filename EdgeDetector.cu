@@ -15,7 +15,8 @@ using namespace std;
 void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads);
 
 int main(int argc, char* argv[]){
-    string imagePathName("./input/image1.ppm");
+    system("convert input/image2.jpg input/image2.ppm");
+    string imagePathName("./input/image2.ppm");
     
     int gaussKernelSize = 7;
     int numThreads = 32; //Threads per block -- 32x32 or 16x16 or 8x8
@@ -31,6 +32,8 @@ int main(int argc, char* argv[]){
 
     //////////////Parallel Processing///////////////
     parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads);
+    
+    system("convert output/image2_gpu.ppm output/image2_gpu.jpg");
 
     //Free memory
     freeImage(image);
