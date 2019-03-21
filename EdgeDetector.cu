@@ -56,7 +56,8 @@ int main(int argc, char* argv[]){
     Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
     matrixToImage(normalized, imageResult);
     outputFileName_ppm = "./outputs/"+outputFileName_ppm+"_gpu.ppm";
-    string outputFileName_jpg = "./outputs/"+outputFileName_ppm+"_gpu.jpg";
+    string outputFileName_jpg = outputFileName_ppm;
+    outputFileName_jpg.replace(imagePathName_jpg.find(ppmstr),ppmstr.length(), jpgstr);
     writePPM(outputFileName_ppm.c_str(), imageResult);
     freeImage(imageResult);
 
