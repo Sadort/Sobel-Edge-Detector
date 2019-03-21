@@ -15,16 +15,31 @@ using namespace std;
 void parallelEdgeDetector(Matrix grayImage, Matrix gaussianKernel, string pathName, int numThreads, int imageWidth, int imageHeight, float* result);
 
 int main(int argc, char* argv[]){
-    system("convert input/image2.jpg input/image2.ppm");
-    string imagePathName("./input/image2.ppm");
+    string imagePathName_jpg;
+    string imagePathName_ppm;
+    string jpgstr = ".jpg";
+    string ppmstr = ".ppm";
+
+    if (argc < 2)
+    {
+        printf("Please provide image path.");
+    } else
+    {
+        imagePathName_jpg = argv[1];
+        imagePathName_ppm = argv[1];
+    }
+    imagePathName_ppm.replace(imagePathName_ppm.find(jpgstr),jpgstr.length(), ppmstr);
+    string command = "convert " + imagePathName_jpg + " " + imagePathName_ppm;
+
+    system(command);
     
     int gaussKernelSize = 7;
     int numThreads = 32; //Threads per block -- 32x32 or 16x16 or 8x8
     double sigma = 1.5;
 
     //////////////Read Image///////////////
-    PPMImage *image = readPPM(imagePathName.c_str());
-    string outputFileName = getFileName(imagePathName,false);
+    PPMImage *image = readPPM(imagePathName_ppm.c_str());
+    string outputFileName_ppm = getFileName(imagePathName_ppm,false);
 
     //////////////Pre-Processing///////////////////
     Matrix grayImage = rgb2gray(image);
@@ -33,15 +48,16 @@ int main(int argc, char* argv[]){
     float* result = allocateArray(imageWidth*imageHeight);
 
     //////////////Parallel Processing///////////////
-    parallelEdgeDetector(grayImage, gaussianKernel, outputFileName, numThreads, imageWidth, imageHeight, result);
+    parallelEdgeDetector(grayImage, gaussianKernel, outputFileName_ppm, numThreads, imageWidth, imageHeight, result);
 
     ///////////////Save Image Result/////////////////    
     PPMImage* imageResult = createImage(imageHeight, imageWidth);
     Matrix dataResult = arrayToMatrix(result, imageHeight, imageWidth);
     Matrix normalized = normalize(dataResult, 0, 255); //Normalize values
     matrixToImage(normalized, imageResult);
-    outputFileName = "./output/"+outputFileName+"_gpu.ppm";
-    writePPM(outputFileName.c_str(), imageResult);
+    outputFileName_ppm = "./outputs/"+outputFileName_ppm+"_gpu.ppm";
+    string outputFileName_jpg = "./outputs/"+outputFileName_ppm+"_gpu.jpg";
+    writePPM(outputFileName_ppm.c_str(), imageResult);
     freeImage(imageResult);
 
     int* finalresult = new int[imageWidth*imageHeight];
@@ -49,6 +65,7 @@ int main(int argc, char* argv[]){
     {
         finalresult[i] = (int)result[i];
     }
+    command = "convert " + outputFileName_ppm + " " + outputFileName_jpg;
     system("convert output/image2_gpu.ppm output/image2_gpu.jpg");
 
     //Free memory
