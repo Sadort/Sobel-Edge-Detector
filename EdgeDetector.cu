@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
     imagePathName_ppm.replace(imagePathName_ppm.find(jpgstr),jpgstr.length(), ppmstr);
     string command = "convert " + imagePathName_jpg + " " + imagePathName_ppm;
 
-    system(command);
+    system(command.c_str());
     
     int gaussKernelSize = 7;
     int numThreads = 32; //Threads per block -- 32x32 or 16x16 or 8x8
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]){
         finalresult[i] = (int)result[i];
     }
     command = "convert " + outputFileName_ppm + " " + outputFileName_jpg;
-    system("convert output/image2_gpu.ppm output/image2_gpu.jpg");
+    system(command.c_str());
 
     //Free memory
     freeArray(result);
